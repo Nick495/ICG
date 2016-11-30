@@ -1,0 +1,2 @@
+# ICG
+Inverse Congruential Generator
