@@ -58,10 +58,10 @@ static void gen_seq(big modulus, big mul, big add, big seed,
 
 static ubig seq_len(ubig size, ubig seq[size])
 {
-	char *seen = malloc(sizeof(char));
-	memset(&seen, 0, sizeof(char) * size);
-
+	char *seen = malloc(sizeof(char) * size);
+	memset(seen, 0, sizeof(char) * size);
 	for (ubig i = 0; i < size; ++i) {
+		printf("%lld\n", seq[i]);
 		if (seen[seq[i]]) {
 			return i + 1;
 		}
