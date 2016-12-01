@@ -91,7 +91,8 @@ int main(int argc, char **argv)
 	big seed = strtoull(argv[4], NULL, 10);
 	assert(modulus >= 0 && multiplier >= 0 && seed >= 0);
 
-	ubig invs[modulus], seq[modulus];
+	ubig *invs = malloc(sizeof(ubig) * modulus);
+	ubig *seq = malloc(sizeof(ubig) * modulus);
 	gen_invs(modulus, invs);
 	gen_seq(modulus, multiplier, adder, seed, invs, seq);
 
@@ -102,4 +103,7 @@ int main(int argc, char **argv)
 	print_arr(modulus, seq);
 
 	printf("Sequence length: %llu\n", seq_len(modulus, seq));
+
+	free(invs);
+	free(seq);
 }
