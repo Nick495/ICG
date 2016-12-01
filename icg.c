@@ -58,15 +58,16 @@ static void gen_seq(big modulus, big mul, big add, big seed,
 
 static ubig seq_len(ubig size, ubig seq[size])
 {
-	char seen[size];
+	char *seen = malloc(sizeof(char));
 	memset(&seen, 0, sizeof(char) * size);
 
-	for (size_t i = 0; i < size; ++i) {
+	for (ubig i = 0; i < size; ++i) {
 		if (seen[seq[i]]) {
 			return i + 1;
 		}
 		seen[seq[i]] = 1;
 	}
+	free(seen);
 	return size;
 }
 
@@ -86,10 +87,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	big modulus = strtoull(argv[1], NULL, 10);
-	big multiplier = strtoull(argv[2], NULL, 10);
-	big adder = strtoull(argv[3], NULL, 10);
-	big seed = strtoull(argv[4], NULL, 10);
+	big multiplier = strtoull(argv[2], NULL, 10) % modulus;
+	big adder = strtoull(argv[3], NULL, 10) % modulus;
+	big seed = strtoull(argv[4], NULL, 10) % modulus;
 	assert(modulus >= 0 && multiplier >= 0 && seed >= 0);
+	assert(multiplier < modulus && adder < modulus && seed < modulus);
 
 	ubig *invs = malloc(sizeof(ubig) * modulus);
 	ubig *seq = malloc(sizeof(ubig) * modulus);
