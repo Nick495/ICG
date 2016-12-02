@@ -37,16 +37,16 @@ static ubig mod_inv(big value, big modulus)
 
 static void gen_invs(big modulus, ubig invs[modulus])
 {
-	for (size_t i = 0; i < modulus; ++i) {
+	for (size_t i = 0; i < (size_t)modulus; ++i) {
 		invs[i] = mod_inv(i, modulus);
 	}
 }
 
 static void gen_seq(big modulus, big mul, big add, big seed,
-		ubig invs[modulus], ubig arr[modulus])
+		const ubig invs[modulus], ubig arr[modulus])
 {
 	big value = seed;
-	for (size_t i = 0; i < modulus; ++i) {
+	for (size_t i = 0; i < (size_t)modulus; ++i) {
 		arr[i] = value;
 		if (invs[value]) {
 			value = (mul * invs[value] + add) % modulus;
@@ -60,8 +60,7 @@ static ubig seq_len(ubig size, ubig seq[size])
 {
 	char *seen = malloc(sizeof(char) * size);
 	memset(seen, 0, sizeof(char) * size);
-	for (ubig i = 0; i < size; ++i) {
-		//printf("%lld\n", seq[i]);
+	for (size_t i = 0; i < (size_t) size; ++i) {
 		if (seen[seq[i]]) {
 			return i + 1;
 		}
@@ -73,7 +72,7 @@ static ubig seq_len(ubig size, ubig seq[size])
 
 static void print_arr(big size, ubig arr[size])
 {
-	for (size_t i = 0; i < size; ++i) {
+	for (size_t i = 0; i < (size_t)size; ++i) {
 		printf("%llu ", arr[i]);
 	}
 	printf("\n");
