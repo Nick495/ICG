@@ -1,10 +1,4 @@
-#include <stdio.h>	/* printf() */
-#include <stdlib.h>	/* strtoull() */
-#include <string.h>	/* memset */
-#include <assert.h>	/* assert() */
-
-typedef long long big;
-typedef unsigned long long ubig;
+#include "icg.h"
 
 /* TODO: Fix mod_inv such that ts can't be negative.
  * Taken from wikipedia's page. Ref:
@@ -16,13 +10,12 @@ static ubig mod_inv(big value, big modulus)
 	big r = modulus, newr = value;
 	while (newr != 0) {
 		big quotient = r / newr;
-		/* (t, newt) := (newt, t - quotient * newt) */
-		big swap = newt;
+
+		big swap = newt; /* (t, newt) := (newt, t - quotient * newt) */
 		newt = t - quotient * newt;
 		t = swap;
 
-		/* (r, newr) := (newr, r - quotient * newr)*/
-		swap = newr;
+		swap = newr; /* (r, newr) := (newr, r - quotient * newr)*/
 		newr = r - quotient * newr;
 		r = swap;
 	}
@@ -35,41 +28,27 @@ static ubig mod_inv(big value, big modulus)
 	return t;
 }
 
-static void gen_invs(big modulus, ubig invs[modulus])
+static void gen_invs(big modulus, ubig *invs)
 {
 	for (size_t i = 0; i < (size_t)modulus; ++i) {
 		invs[i] = mod_inv(i, modulus);
 	}
 }
 
-static void gen_seq(big modulus, big mul, big add, big seed,
-		const ubig invs[modulus], ubig arr[modulus])
+static void gen_seq(big mod, big mul, big add, big seed, ubig *invs, ubig *arr)
 {
 	big value = seed;
-	for (size_t i = 0; i < (size_t)modulus; ++i) {
+	for (size_t i = 0; i < (size_t)mod; ++i) {
 		arr[i] = value;
 		if (invs[value]) {
-			value = (mul * invs[value] + add) % modulus;
+			value = (mul * invs[value] + add) % mod;
 		} else {
 			value = add;
 		}
 	}
 }
 
-static ubig seq_len(ubig size, ubig seq[size])
-{
-	char *seen = malloc(sizeof(char) * size);
-	memset(seen, 0, sizeof(char) * size);
-	for (size_t i = 0; i < (size_t) size; ++i) {
-		if (seen[seq[i]]) {
-			return i + 1;
-		}
-		seen[seq[i]] = 1;
-	}
-	free(seen);
-	return size;
-}
-
+/* Debugging */
 static void print_arr(big size, ubig arr[size])
 {
 	for (size_t i = 0; i < (size_t)size; ++i) {
@@ -78,3 +57,18 @@ static void print_arr(big size, ubig arr[size])
 	printf("\n");
 }
 
+ubig *icg(big modulus, big mul, big add, big seed)
+{
+	ubig *invs = malloc(sizeof(ubig) * modulus);
+	ubig *seq = malloc(sizeof(ubig) * modulus);
+
+	assert(mul >= 0 && add >= 0 && seed >= 0);
+	mul %= modulus;
+	add %= modulus;
+	seed %= modulus;
+
+	gen_invs(modulus, invs);
+	gen_seq(modulus, mul, add, seed, invs, seq);
+	free(invs);
+	return seq;
+}
