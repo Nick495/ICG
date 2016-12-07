@@ -48,23 +48,6 @@ static void gen_seq(struct icg_tuple t, ubig *invs, ubig *seq)
 	}
 }
 
-/* Assumes all icgs use the same modulus. */
-static void gen_cicg_seq(struct icg_tuple *av, size_t avlen, ubig *inv, ubig *s)
-{
-	assert(av != NULL);
-	big v = av[0].seed;
-	for (size_t i = 0; i < (size_t)av[0].mod; ++i) {
-		for (size_t j = 0; j < avlen; ++j) {
-			s[i * avlen + j] = v;
-			if (inv[v]) {
-				v = (av[j].mul* inv[v] + av[j].add) % av[j].mod;
-			} else {
-				v = av[j].add;
-			}
-		}
-	}
-}
-
 /* Debugging */
 static void print_arr(big size, ubig arr[size])
 {
@@ -90,24 +73,95 @@ ubig *icg(struct icg_tuple args)
 	return seq;
 }
 
-/* Assumes all icgs use the same modulus. */
-ubig *cicg(struct icg_tuple *argvec, size_t avcnt)
+static void binary_out(ubig val)
 {
-	assert(argvec != NULL);
-	ubig *invs = malloc(sizeof(*invs) * argvec[0].mod);
-	ubig *seq = malloc(sizeof(*seq) * argvec[0].mod * avcnt);
+	write(STDOUT_FILENO, &val, sizeof(val));
+}
 
-	for (size_t i = 0; i < avcnt; ++i) {
-		argvec[i].mul %= argvec[i].mod;
-		argvec[i].add %= argvec[i].mod;
-		argvec[i].seed %= argvec[i].mod;
+static void ascii_out(ubig val)
+{
+	printf("%llu\n", val);
+}
 
-		struct icg_tuple a = argvec[i];
-		assert(a.mul >= 0 && a.add >= 0 && a.seed >= 0);
+/* Assumes all icgs use the same modulus. */
+void cicg(struct icg_tuple *params, size_t cnt, int binary_mode)
+{
+	ubig *seqs[cnt]; /* Inputs */
+	ubig prod = 1; /* Initial value of 1 */
+	void (*out)(ubig); /* Output function */
+	if (binary_mode) {
+		out = binary_out;
+	} else {
+		out = ascii_out;
+	}
+	for (size_t i = 0; i < cnt; ++i) {
+		prod *= params[i].mod;
+		seqs[i] = icg(params[i]);
 	}
 
-	gen_invs(argvec[0].mod, invs);
-	gen_cicg_seq(argvec, avcnt, invs, seq);
-	free(invs);
-	return seq;
+	for (size_t i = 0; i < prod; ++i) {
+		ubig seq_i = 0;
+		for (size_t j = 0; j < cnt; ++j) {
+			const ubig mod = params[j].mod;
+			seq_i += (prod / mod) * seqs[j][i % mod];
+		}
+		seq_i %= prod;
+		out(seq_i);
+	}
+
+	for (size_t i = 0; i < prod; ++i) {
+		free(seqs[i]);
+	}
+	return;
 }
+
+#if TEST
+static ubig seq_len(ubig size, ubig seq[size])
+{
+	char *seen = malloc(sizeof(char) * size);
+	memset(seen, 0, sizeof(char) * size);
+	for (size_t i = 0; i < (size_t) size; ++i) {
+		if (seen[seq[i]]) {
+			return i + 1;
+		}
+		seen[seq[i]] = 1;
+	}
+	free(seen);
+	return size;
+}
+
+int main(int argc, char** argv)
+{
+	if (argc != 5) {
+		printf("usage: %s <modulus> <multiplier> <adder> <seed>\n",
+				argv[0]);
+		return 1;
+	}
+
+	struct icg_tuple t = {
+		strtoull(argv[1], NULL, 10),
+		strtoull(argv[2], NULL, 10),
+		strtoull(argv[3], NULL, 10),
+		strtoull(argv[4], NULL, 10)
+	};
+
+	assert(t.mod >= 0 && t.mul >= 0 && t.seed >= 0);
+	assert(t.mul < t.mod && t.add < t.mod && t.seed < t.mod);
+
+	ubig *invs = malloc(sizeof(ubig) * t.mod);
+	ubig *seq = malloc(sizeof(ubig) * t.mod);
+
+	gen_invs(t.mod, invs);
+	gen_seq(t, invs, seq);
+
+	printf("DEBUG: Inverses:\n");
+	print_arr(t.mod, invs);
+	free(invs);
+
+	printf("DEBUG: Sequence:\n");
+	print_arr(t.mod, seq);
+
+	printf("Sequence length: %llu\n", seq_len(t.mod, seq));
+	free(seq);
+}
+#endif
