@@ -88,9 +88,6 @@ ubig *cicg(struct icg_tuple *params, size_t cnt)
 	for (size_t i = 0; i < cnt; ++i) {
 		prod *= params[i].mod;
 		seqs[i] = icg(params[i]);
-#if TEST
-		print_arr(params[i].mod, seqs[i]);
-#endif
 	}
 	ubig *seq = calloc(prod, sizeof(*seq)); /* Output sequence. */
 
@@ -99,13 +96,7 @@ ubig *cicg(struct icg_tuple *params, size_t cnt)
 		for (size_t j = 0; j < cnt; ++j) {
 			const ubig mod = params[j].mod;
 			val += (prod / mod) * seqs[j][i % mod];
-#if TEST
-			printf("DEBUG: %zu %zu, %llu\n", i, j,seqs[j][i % mod]);
-#endif
 		}
-#if TEST
-		printf("\nProduct: %llu\n", val);
-#endif
 		seq[i] = val % prod;
 	}
 
@@ -205,23 +196,6 @@ int main(int argc, char** argv)
 	print_arr(t.mod + 1, seq);
 
 	printf("Sequence length: %llu\n", seq_len(t.mod, seq));
-	free(seq);
-	
-	/* test cicg */
-	printf("CICG Stuff\n");
-	struct icg_tuple params[2] = {
-		{5, 2, 3, 1},
-		{7, 1, 1, 0}
-	};
-	size_t param_len = sizeof(params)/sizeof(params[0]);
-	ubig period = 1;
-	for (size_t i = 0; i < param_len; ++i) {
-		period *= params[i].mod;
-	}
-	seq = cicg(params, param_len);
-	printf("CICG Sequence Length: %llu\n", seq_len(period, seq));
-	printf("CICG Sequence:\n");
-	print_arr(period, seq);
 	free(seq);
 }
 #endif
