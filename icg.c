@@ -141,7 +141,7 @@ void cicg_writer(struct icg_tuple *params, size_t cnt, int binary_mode)
 		out(seq_i);
 	}
 
-	for (size_t i = 0; i < prod; ++i) {
+	for (size_t i = 0; i < cnt; ++i) {
 		free(seqs[i]);
 	}
 	return;
