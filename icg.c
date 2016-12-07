@@ -72,7 +72,7 @@ ubig *icg(struct icg_tuple args)
 
 static void binary_out(ubig val)
 {
-	write(STDOUT_FILENO, &val, sizeof(val));
+	write(STDOUT_FILENO, &val, sizeof(val) / 4);
 }
 
 static void ascii_out(ubig val)
