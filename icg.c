@@ -142,7 +142,6 @@ ubig seq_len(ubig size, ubig seq[size])
 {
 	char *seen = malloc(sizeof(char) * size);
 	memset(seen, 0, sizeof(char) * size);
-	printf("Got here!\n");
 	for (size_t i = 0; i < (size_t) size + 1; ++i) {
 		if (seen[seq[i]]) {
 			return i;
