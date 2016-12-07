@@ -3,20 +3,6 @@
 #include <stdlib.h>
 #include <time.h>
 
-static ubig seq_len(ubig size, ubig seq[size])
-{
-	char *seen = malloc(sizeof(char) * size);
-	memset(seen, 0, sizeof(char) * size);
-	for (size_t i = 0; i < (size_t) size; ++i) {
-		if (seen[seq[i]]) {
-			return i + 1;
-		}
-		seen[seq[i]] = 1;
-	}
-	free(seen);
-	return size;
-}
-
 ubig icg_period(struct icg_tuple t)
 {
 	ubig *seq = icg(t);
@@ -28,9 +14,10 @@ ubig icg_period(struct icg_tuple t)
 big rand_odd(big max)
 {
 	big x;
-	do  {
-		x = rand();
-	} while (x > max || x < 0 || x % 2);
+	x = rand() % max;
+	if (x % 2) {
+		x += 1;
+	}
 	return x;
 }
 

@@ -1,5 +1,11 @@
 #include "icg.h"
 
+#if TEST
+#include <stdio.h>
+static void print_arr(big size, ubig arr[size]);
+#endif
+
+
 /* TODO: Fix mod_inv such that ts can't be negative.
  * Taken from wikipedia's page. Ref:
  * https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Modular_integers
@@ -38,7 +44,7 @@ static void gen_invs(big modulus, ubig *invs)
 static void gen_seq(struct icg_tuple t, ubig *invs, ubig *seq)
 {
 	big value = t.seed;
-	for (size_t i = 0; i < (size_t)t.mod; ++i) {
+	for (size_t i = 0; i < (size_t)t.mod + 1; ++i) {
 		seq[i] = value;
 		if (invs[value]) {
 			value = (t.mul * invs[value] + t.add) % t.mod;
@@ -48,19 +54,10 @@ static void gen_seq(struct icg_tuple t, ubig *invs, ubig *seq)
 	}
 }
 
-/* Debugging */
-static void print_arr(big size, ubig arr[size])
-{
-	for (size_t i = 0; i < (size_t)size; ++i) {
-		printf("%llu ", arr[i]);
-	}
-	printf("\n");
-}
-
 ubig *icg(struct icg_tuple args)
 {
 	ubig *invs = malloc(sizeof(ubig) * args.mod);
-	ubig *seq = malloc(sizeof(ubig) * args.mod);
+	ubig *seq = malloc(sizeof(ubig) * (args.mod + 1));
 
 	assert(args.mul >= 0 && args.add >= 0 && args.seed >= 0);
 	args.mul %= args.mod;
@@ -84,7 +81,42 @@ static void ascii_out(ubig val)
 }
 
 /* Assumes all icgs use the same modulus. */
-void cicg(struct icg_tuple *params, size_t cnt, int binary_mode)
+ubig *cicg(struct icg_tuple *params, size_t cnt)
+{
+	ubig *seqs[cnt]; /* Inputs */
+	ubig prod = 1; /* Initial value of 1 */
+	for (size_t i = 0; i < cnt; ++i) {
+		prod *= params[i].mod;
+		seqs[i] = icg(params[i]);
+#if TEST
+		print_arr(params[i].mod, seqs[i]);
+#endif
+	}
+	ubig *seq = calloc(prod, sizeof(*seq)); /* Output sequence. */
+
+	for (size_t i = 0; i < prod; ++i) {
+		ubig val = 0;
+		for (size_t j = 0; j < cnt; ++j) {
+			const ubig mod = params[j].mod;
+			val += (prod / mod) * seqs[j][i % mod];
+#if TEST
+			printf("DEBUG: %zu %zu, %llu\n", i, j,seqs[j][i % mod]);
+#endif
+		}
+#if TEST
+		printf("\nProduct: %llu\n", val);
+#endif
+		seq[i] = val % prod;
+	}
+
+	for (size_t i = 0; i < cnt; ++i) {
+		free(seqs[i]);
+	}
+	return seq;
+}
+
+/* Assumes all icgs use the same modulus. */
+void cicg_writer(struct icg_tuple *params, size_t cnt, int binary_mode)
 {
 	ubig *seqs[cnt]; /* Inputs */
 	ubig prod = 1; /* Initial value of 1 */
@@ -115,19 +147,28 @@ void cicg(struct icg_tuple *params, size_t cnt, int binary_mode)
 	return;
 }
 
-#if TEST
-static ubig seq_len(ubig size, ubig seq[size])
+ubig seq_len(ubig size, ubig seq[size])
 {
 	char *seen = malloc(sizeof(char) * size);
 	memset(seen, 0, sizeof(char) * size);
-	for (size_t i = 0; i < (size_t) size; ++i) {
+	printf("Got here!\n");
+	for (size_t i = 0; i < (size_t) size + 1; ++i) {
 		if (seen[seq[i]]) {
-			return i + 1;
+			return i;
 		}
 		seen[seq[i]] = 1;
 	}
 	free(seen);
 	return size;
+}
+
+#if TEST
+static void print_arr(big size, ubig arr[size])
+{
+	for (size_t i = 0; i < (size_t)size; ++i) {
+		printf("%llu ", arr[i]);
+	}
+	printf("\n");
 }
 
 int main(int argc, char** argv)
@@ -151,6 +192,8 @@ int main(int argc, char** argv)
 	ubig *invs = malloc(sizeof(ubig) * t.mod);
 	ubig *seq = malloc(sizeof(ubig) * t.mod);
 
+	printf("Got here!\n");
+
 	gen_invs(t.mod, invs);
 	gen_seq(t, invs, seq);
 
@@ -159,9 +202,26 @@ int main(int argc, char** argv)
 	free(invs);
 
 	printf("DEBUG: Sequence:\n");
-	print_arr(t.mod, seq);
+	print_arr(t.mod + 1, seq);
 
 	printf("Sequence length: %llu\n", seq_len(t.mod, seq));
+	free(seq);
+	
+	/* test cicg */
+	printf("CICG Stuff\n");
+	struct icg_tuple params[2] = {
+		{5, 2, 3, 1},
+		{7, 1, 1, 0}
+	};
+	size_t param_len = sizeof(params)/sizeof(params[0]);
+	ubig period = 1;
+	for (size_t i = 0; i < param_len; ++i) {
+		period *= params[i].mod;
+	}
+	seq = cicg(params, param_len);
+	printf("CICG Sequence Length: %llu\n", seq_len(period, seq));
+	printf("CICG Sequence:\n");
+	print_arr(period, seq);
 	free(seq);
 }
 #endif
